@@ -281,19 +281,20 @@
                 timerSeconds: 0,
                 timerInterval: null,
                 activeTaskDescription: '',
-                activeProjectCode: 'DAR',
+                activeProjectCode: 'DAR-T',
                 rawConfluenceText: '',
 
                 projects: [
                     { code: 'Per', name: 'Personal', description: 'Personal routines, blogging, study' },
                     { code: 'SMG', name: 'SMG Consulting', description: 'Client consulting operations' },
-                    { code: 'DAR', name: 'DAR Technical', description: 'LiDAR, geospatial processing, NERC projects' }
+                    { code: 'DAR-T', name: 'DAR - Technical', description: 'LiDAR QA, geospatial processing, Python scripting' },
+                    { code: 'DAR-A', name: 'DAR - Administrative', description: 'Client communication, scoping, Friday meetings' }
                 ],
 
                 entries: [],
 
                 newProj: { code: '', name: '', description: '' },
-                modalForm: { date: '', start: '09:00', end: '10:00', projectCode: 'DAR', task: '' },
+                modalForm: { date: '', start: '09:00', end: '10:00', projectCode: 'DAR-T', task: '' },
 
                 init() {
                     const savedEntries = localStorage.getItem('consultant_os_entries');
@@ -341,10 +342,11 @@
                 },
 
                 getBadgeClass(code) {
+                    if (code.startsWith('DAR')) return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30';
                     switch (code) {
                         case 'Per': return 'bg-amber-500/10 text-amber-400 border border-amber-500/30';
                         case 'SMG': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
-                        default: return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30';
+                        default: return 'bg-slate-500/10 text-slate-400 border border-slate-500/30';
                     }
                 },
 
@@ -420,7 +422,7 @@
                         date: `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`,
                         start: '09:00',
                         end: '10:00',
-                        projectCode: 'DAR',
+                        projectCode: 'DAR-T',
                         task: ''
                     };
                     this.showModal = true;
@@ -452,7 +454,9 @@
                     if (!this.rawConfluenceText.trim()) return;
 
                     const lines = this.rawConfluenceText.split('\n');
-                    let currentDate = '20260921';
+                    const now = new Date();
+                    const pad = n => String(n).padStart(2, '0');
+                    let currentDate = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
 
                     lines.forEach(line => {
                         const trimmed = line.trim();
@@ -467,11 +471,13 @@
                             const end = timeMatch[2];
                             const remainder = trimmed.replace(timeMatch[0], '').trim();
 
-                            let code = 'DAR';
+                            let code = 'DAR-T';
                             if (remainder.startsWith('Per')) code = 'Per';
                             else if (remainder.startsWith('SMG')) code = 'SMG';
+                            else if (remainder.startsWith('DAR-A')) code = 'DAR-A';
+                            else if (remainder.startsWith('DAR')) code = 'DAR-T';
 
-                            const taskText = remainder.replace(/^(Per|SMG|DAR)\b/, '').trim() || remainder;
+                            const taskText = remainder.replace(/^(Per|SMG|DAR-T|DAR-A|DAR)\b/, '').trim() || remainder;
 
                             this.entries.push({
                                 id: Date.now() + Math.random(),
