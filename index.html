@@ -50,22 +50,26 @@
             </div>
 
             <div class="flex items-center space-x-3">
-                <!-- Quick Backup / Restore Buttons -->
-                <button @click="exportData()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5" title="Export JSON for Google Drive">
+                <!-- Connect Local Database -->
+                <button @click="connectLocalDatabase()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md transition flex items-center space-x-1.5"
+                        :class="dbConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'"
+                        title="Connect physical file for auto-save">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                    <span x-text="dbConnected ? 'DB Active' : 'Connect DB'"></span>
+                </button>
+
+                <div class="w-px h-4 bg-slate-800 mx-1"></div>
+
+                <!-- Manual Backup / Restore Buttons -->
+                <button @click="exportData()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5" title="Export JSON Manual Backup">
                     <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    <span>Export JSON</span>
+                    <span>Export</span>
                 </button>
                 <label class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer flex items-center space-x-1.5" title="Import JSON backup">
                     <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     <span>Import</span>
                     <input type="file" @change="importData($event)" class="hidden" accept=".json">
                 </label>
-
-                <!-- Theme Toggle -->
-                <button @click="toggleTheme()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
-                    <svg x-show="darkMode" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <svg x-show="!darkMode" class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                </button>
             </div>
         </div>
     </header>
@@ -169,7 +173,6 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <!-- Render Notes if they exist on the entry -->
                                     <div x-show="entry.notes" class="mt-2 ml-10 text-xs font-mono text-slate-400 bg-slate-950/50 p-2 rounded border border-slate-800 whitespace-pre-wrap" x-text="entry.notes"></div>
                                 </div>
                             </template>
@@ -205,7 +208,6 @@
                     </div>
                 </div>
 
-                <!-- Add Project Form -->
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg space-y-3">
                     <h4 class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">Add New Project Code</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
@@ -218,7 +220,6 @@
                     </div>
                 </div>
 
-                <!-- Project List -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <template x-for="proj in projects" :key="proj.code">
                         <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg flex items-center justify-between">
@@ -296,11 +297,15 @@
                 timerRunning: false,
                 timerSeconds: 0,
                 timerInterval: null,
+                timerStartTime: null, // Add this new variable
+
+                dbConnected: false,
+                fileHandle: null,
 
                 activeTaskDescription: '',
                 activeProjectCode: 'DAR-T',
-                activeTaskNotes: '', // Bound to UI textarea
-                taskNotes: {},       // Database of all notes by task key
+                activeTaskNotes: '',
+                taskNotes: {},
 
                 rawConfluenceText: '',
 
@@ -316,7 +321,6 @@
                 modalForm: { date: '', start: '09:00', end: '10:00', projectCode: 'DAR-T', task: '', notes: '' },
 
                 init() {
-                    // Load database elements
                     const savedEntries = localStorage.getItem('consultant_os_entries');
                     if (savedEntries) { try { this.entries = JSON.parse(savedEntries); } catch (e) { } }
 
@@ -326,24 +330,65 @@
                     const savedNotes = localStorage.getItem('consultant_os_notes');
                     if (savedNotes) { try { this.taskNotes = JSON.parse(savedNotes); } catch (e) { } }
 
-                    // Set daily context
                     const now = new Date();
                     const pad = n => String(n).padStart(2, '0');
                     const todayStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
                     this.currentSprintTitle = todayStr;
 
-                    // Watchers for Note Continuity
                     this.$watch('activeTaskDescription', () => this.syncNotes());
                     this.$watch('activeProjectCode', () => this.syncNotes());
 
-                    // Auto-save notes as you type
+                    let noteTimeout;
                     this.$watch('activeTaskNotes', (val) => {
                         if (this.activeTaskDescription.trim().length > 0) {
                             const key = `${this.activeProjectCode}::${this.activeTaskDescription.trim()}`;
                             this.taskNotes[key] = val;
                             localStorage.setItem('consultant_os_notes', JSON.stringify(this.taskNotes));
+
+                            clearTimeout(noteTimeout);
+                            noteTimeout = setTimeout(() => {
+                                this.writeToFileSystem();
+                            }, 1000); // 1-second debounce to prevent write-locking the file
                         }
                     });
+                },
+
+                async connectLocalDatabase() {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: 'consultantos_db.json',
+                            types: [{
+                                description: 'JSON Database',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        });
+                        this.fileHandle = handle;
+                        this.dbConnected = true;
+
+                        // Immediately write the current cached state to establish the file
+                        await this.writeToFileSystem();
+                    } catch (err) {
+                        console.warn("User cancelled database connection or browser blocked it.");
+                    }
+                },
+
+                async writeToFileSystem() {
+                    if (!this.fileHandle) return;
+                    try {
+                        const exportBundle = {
+                            entries: this.entries,
+                            projects: this.projects,
+                            notes: this.taskNotes
+                        };
+                        const writable = await this.fileHandle.createWritable();
+                        await writable.write(JSON.stringify(exportBundle, null, 2));
+                        await writable.close();
+                    } catch (err) {
+                        console.error("Write failed:", err);
+                        this.dbConnected = false;
+                        this.fileHandle = null;
+                        alert("Database connection lost. Please click 'Connect DB' to re-mount the file.");
+                    }
                 },
 
                 syncNotes() {
@@ -357,12 +402,15 @@
 
                 saveToStorage() {
                     localStorage.setItem('consultant_os_entries', JSON.stringify(this.entries));
+                    this.writeToFileSystem();
                 },
 
                 saveProjectsToStorage() {
                     localStorage.setItem('consultant_os_projects', JSON.stringify(this.projects));
+                    this.writeToFileSystem();
                 },
 
+                // ... (rest of the methods remain identical: toggleTheme, sortedDates, etc.)
                 toggleTheme() {
                     this.darkMode = !this.darkMode;
                     document.documentElement.classList.toggle('dark', this.darkMode);
@@ -395,13 +443,18 @@
                 toggleTimer() {
                     if (!this.timerRunning) {
                         this.timerRunning = true;
-                        this.timerInterval = setInterval(() => { this.timerSeconds++; }, 1000);
+                        this.timerStartTime = Date.now();
+
+                        // Calculate the exact elapsed time every second, bypassing browser throttling
+                        this.timerInterval = setInterval(() => {
+                            this.timerSeconds = Math.floor((Date.now() - this.timerStartTime) / 1000);
+                        }, 1000);
                     } else {
                         clearInterval(this.timerInterval);
                         this.timerRunning = false;
 
                         const endTime = new Date();
-                        const startTime = new Date(endTime.getTime() - (this.timerSeconds * 1000));
+                        const startTime = new Date(this.timerStartTime); // Use the exact recorded start time
 
                         const pad = n => String(n).padStart(2, '0');
                         const dateStr = `${endTime.getFullYear()}${pad(endTime.getMonth() + 1)}${pad(endTime.getDate())}`;
@@ -415,13 +468,14 @@
                             end: endStr,
                             projectCode: this.activeProjectCode,
                             task: this.activeTaskDescription || 'Timer session',
-                            notes: this.activeTaskNotes // Save a snapshot of notes to the log entry
+                            notes: this.activeTaskNotes
                         });
 
                         this.saveToStorage();
                         this.timerSeconds = 0;
+                        this.timerStartTime = null;
                         this.activeTaskDescription = '';
-                        this.activeTaskNotes = ''; // Clear for next task
+                        this.activeTaskNotes = '';
                     }
                 },
 
@@ -495,7 +549,6 @@
 
                 parseConfluenceText() {
                     if (!this.rawConfluenceText.trim()) return;
-
                     const lines = this.rawConfluenceText.split('\n');
                     const now = new Date();
                     const pad = n => String(n).padStart(2, '0');
@@ -507,7 +560,6 @@
                             currentDate = trimmed;
                             return;
                         }
-
                         const timeMatch = trimmed.match(/^(\d{2}:\d{2})\s+(\d{2}:\d{2})/);
                         if (timeMatch) {
                             const start = timeMatch[1];
@@ -521,7 +573,6 @@
                             else if (remainder.startsWith('DAR')) code = 'DAR-T';
 
                             const taskText = remainder.replace(/^(Per|SMG|DAR-T|DAR-A|DAR)\b/, '').trim() || remainder;
-
                             this.entries.push({
                                 id: Date.now() + Math.random(),
                                 date: currentDate,
@@ -533,7 +584,6 @@
                             });
                         }
                     });
-
                     this.saveToStorage();
                     this.currentTab = 'sprints';
                     this.rawConfluenceText = '';
@@ -561,16 +611,14 @@
                     reader.onload = (e) => {
                         try {
                             const imported = JSON.parse(e.target.result);
-                            // Support legacy simple-array imports and new bundled imports
                             if (Array.isArray(imported)) {
                                 this.entries = imported;
                             } else if (imported.entries) {
                                 this.entries = imported.entries || [];
                                 this.projects = imported.projects || this.projects;
                                 this.taskNotes = imported.notes || {};
-                                this.saveProjectsToStorage();
-                                localStorage.setItem('consultant_os_notes', JSON.stringify(this.taskNotes));
                             }
+                            this.saveProjectsToStorage();
                             this.saveToStorage();
                             alert('Data imported successfully!');
                         } catch (err) {
