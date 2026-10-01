@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConsultantOS - Time & Sprint Tracker</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -18,9 +17,7 @@
             }
         }
     </script>
-    <!-- Alpine.js for lightweight reactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Google Fonts: JetBrains Mono & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -30,6 +27,21 @@
         code, pre, .font-mono {
             font-family: 'JetBrains Mono', monospace;
         }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .print-border {
+                border-color: #e5e7eb !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950"
@@ -37,7 +49,7 @@
       x-init="init()">
 
     <!-- Top Navigation / Header -->
-    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-30">
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-30 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="h-9 w-9 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-lg">
@@ -45,27 +57,23 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-sm tracking-wide text-slate-200">ConsultantOS</h1>
-                    <p class="text-xs text-slate-400 font-mono">Time & Sprint Tracker v2.0</p>
+                    <p class="text-xs text-slate-400 font-mono">Time & Sprint Tracker v2.1</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-3">
-                <!-- Connect Local Database -->
                 <button @click="connectLocalDatabase()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md transition flex items-center space-x-1.5"
                         :class="dbConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'"
                         title="Connect physical file for auto-save">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
                     <span x-text="dbConnected ? 'DB Active' : 'Connect DB'"></span>
                 </button>
-
                 <div class="w-px h-4 bg-slate-800 mx-1"></div>
-
-                <!-- Manual Backup / Restore Buttons -->
-                <button @click="exportData()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5" title="Export JSON Manual Backup">
+                <button @click="exportData()" class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5">
                     <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     <span>Export</span>
                 </button>
-                <label class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer flex items-center space-x-1.5" title="Import JSON backup">
+                <label class="px-3 py-1.5 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer flex items-center space-x-1.5">
                     <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     <span>Import</span>
                     <input type="file" @change="importData($event)" class="hidden" accept=".json">
@@ -74,13 +82,11 @@
         </div>
     </header>
 
-    <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
 
-        <!-- Active Stopwatch / Quick Timer Widget -->
-        <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl relative overflow-hidden">
+        <!-- Live Stopwatch (Hidden when printing) -->
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl relative overflow-hidden no-print">
             <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none"></div>
-
             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div class="space-y-1">
                     <div class="flex items-center space-x-2">
@@ -89,61 +95,50 @@
                     </div>
                     <div class="text-3xl sm:text-4xl font-mono font-bold tracking-tight text-slate-100" x-text="formatTime(timerSeconds)">00:00:00</div>
                 </div>
-
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <input type="text" x-model="activeTaskDescription" placeholder="Task description..." class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 flex-grow sm:w-64">
-
                     <select x-model="activeProjectCode" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-cyan-500">
                         <template x-for="proj in projects" :key="proj.code">
                             <option :value="proj.code" x-text="proj.code + ' - ' + proj.name"></option>
                         </template>
                     </select>
-
-                    <button @click="toggleTimer()"
-                            class="px-5 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-2 shadow-lg"
+                    <button @click="toggleTimer()" class="px-5 py-2 rounded-lg font-medium text-sm transition flex items-center space-x-2 shadow-lg"
                             :class="timerRunning ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/20' : 'bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold shadow-cyan-900/20'">
                         <span x-text="timerRunning ? 'Stop & Save' : 'Start Timer'"></span>
                     </button>
                 </div>
             </div>
-
-            <!-- Task Continuity Scratchpad -->
             <div class="mt-4 pt-4 border-t border-slate-800/60" x-show="activeTaskDescription.length > 0" x-transition>
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-mono text-slate-400 uppercase tracking-wider">Task Scratchpad (Auto-saves)</label>
                     <span class="text-[10px] text-cyan-500/70 font-mono">Syncs to: <span x-text="activeTaskDescription"></span></span>
                 </div>
-                <textarea x-model="activeTaskNotes" rows="2" placeholder="Jot down technical details, progress, or next steps to pick up in your next session..." class="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500 resize-y"></textarea>
+                <textarea x-model="activeTaskNotes" rows="2" placeholder="Jot down technical details..." class="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500 resize-y"></textarea>
             </div>
         </section>
 
-        <!-- Tabs / View Selector -->
-        <div class="flex border-b border-slate-800 space-x-6 text-sm">
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-800 space-x-6 text-sm no-print">
             <button @click="currentTab = 'sprints'" class="pb-3 border-b-2 font-medium transition" :class="currentTab === 'sprints' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'">Daily Tracker</button>
+            <button @click="currentTab = 'reports'" class="pb-3 border-b-2 font-medium transition" :class="currentTab === 'reports' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'">Billing Reports</button>
             <button @click="currentTab = 'parser'" class="pb-3 border-b-2 font-medium transition" :class="currentTab === 'parser' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'">Confluence Parser</button>
             <button @click="currentTab = 'projects'" class="pb-3 border-b-2 font-medium transition" :class="currentTab === 'projects' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'">Projects & Codes</button>
         </div>
 
-        <!-- TAB 1: DAILY TRACKER / SPRINTS -->
-        <div x-show="currentTab === 'sprints'" class="space-y-6">
+        <!-- TAB: DAILY TRACKER -->
+        <div x-show="currentTab === 'sprints'" class="space-y-6 no-print">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-xl">
                 <div>
                     <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
                         <span>Time Tracking:</span>
                         <span class="font-mono text-cyan-400" x-text="currentSprintTitle"></span>
                     </h3>
-                    <p class="text-xs text-slate-400 font-mono mt-0.5">By Christian Everhart</p>
                 </div>
-
                 <div class="flex items-center space-x-3">
-                    <button @click="openAddEntryModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-mono font-medium transition flex items-center space-x-1.5">
-                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                        <span>Add Manual Entry</span>
-                    </button>
+                    <button @click="openAddEntryModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-mono font-medium transition">Add Manual Entry</button>
                 </div>
             </div>
 
-            <!-- Entries Grouped by Date -->
             <div class="space-y-6">
                 <template x-for="dateStr in sortedDates" :key="dateStr">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
@@ -154,16 +149,12 @@
                         <div class="divide-y divide-slate-800/60">
                             <template x-for="entry in getEntriesForDate(dateStr)" :key="entry.id">
                                 <div class="px-5 py-3.5 hover:bg-slate-850/50 transition">
-                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                                        <div class="space-y-1">
-                                            <div class="flex items-center space-x-2">
-                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider"
-                                                      :class="getBadgeClass(entry.projectCode)"
-                                                      x-text="entry.projectCode"></span>
-                                                <span class="text-sm font-medium text-slate-200" x-text="entry.task"></span>
-                                            </div>
+                                    <div class="flex justify-between items-center gap-3">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider" :class="getBadgeClass(entry.projectCode)" x-text="entry.projectCode"></span>
+                                            <span class="text-sm font-medium text-slate-200" x-text="entry.task"></span>
                                         </div>
-                                        <div class="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
+                                        <div class="flex items-center space-x-4">
                                             <div class="text-xs font-mono text-slate-400">
                                                 <span x-text="entry.start || '—'"></span> → <span x-text="entry.end || '—'"></span>
                                                 <span class="ml-2 text-slate-200 font-semibold" x-text="'(' + calculateDuration(entry.start, entry.end) + ')'"></span>
@@ -182,60 +173,103 @@
             </div>
         </div>
 
-        <!-- TAB 2: CONFLUENCE PARSER -->
-        <div x-show="currentTab === 'parser'" class="space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-100">Confluence Text Ingestion Engine</h3>
-                    <p class="text-xs text-slate-400 mt-1">Paste past weekly Confluence log text here if you ever need to reference or migrate historical data.</p>
+        <!-- NEW TAB: BILLING REPORTS -->
+        <div x-show="currentTab === 'reports'" class="space-y-6 print-border">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+                <div class="flex justify-between items-end no-print">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-100">Monthly Billing Aggregation</h3>
+                        <p class="text-xs text-slate-400 mt-1">Generate summary hour blocks for client invoicing.</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <select x-model="selectedReportMonth" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-cyan-500">
+                            <template x-for="month in availableMonths" :key="month.value">
+                                <option :value="month.value" x-text="month.label"></option>
+                            </template>
+                        </select>
+                        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-mono font-medium transition flex items-center space-x-1.5">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            <span>Print / PDF</span>
+                        </button>
+                    </div>
                 </div>
-                <textarea x-model="rawConfluenceText" rows="8" placeholder="Paste Confluence export here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-300 focus:outline-none focus:border-cyan-500"></textarea>
-                <div class="flex justify-end">
-                    <button @click="parseConfluenceText()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono rounded-lg transition shadow-lg shadow-cyan-900/20">
-                        Parse & Import Log
-                    </button>
+
+                <div class="hidden print:block mb-8">
+                    <h1 class="text-2xl font-bold text-black">Everhart Consulting</h1>
+                    <h2 class="text-lg text-gray-600 mt-1">Time & Utilization Report: <span x-text="formatMonthLabel(selectedReportMonth)"></span></h2>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <template x-for="report in generateMonthlyReport()" :key="report.code">
+                        <div class="bg-slate-950 border border-slate-800 rounded-lg p-5">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                                <div>
+                                    <h4 class="text-lg font-bold text-slate-100 font-mono" x-text="report.code + ' - ' + report.name"></h4>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-2xl font-mono font-bold text-cyan-400" x-text="report.totalHours"></span>
+                                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Total Hours</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-2">Itemized Tasks:</h5>
+                                <ul class="list-disc list-inside text-sm text-slate-300 space-y-1">
+                                    <template x-for="task in report.tasks" :key="task">
+                                        <li x-text="task" class="pl-2"></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="generateMonthlyReport().length === 0" class="text-center py-8 text-slate-500 font-mono text-sm">
+                        No time entries found for the selected month.
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 3: PROJECTS & CODES -->
-        <div x-show="currentTab === 'projects'" class="space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-100">Project & Billing Codes</h3>
-                        <p class="text-xs text-slate-400 mt-1">Configure and manage active consulting project identifiers.</p>
-                    </div>
+        <!-- TAB 3: CONFLUENCE PARSER -->
+        <div x-show="currentTab === 'parser'" class="space-y-6 no-print">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-100">Confluence Text Ingestion Engine</h3>
                 </div>
+                <textarea x-model="rawConfluenceText" rows="8" placeholder="Paste Confluence export here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-300 focus:outline-none focus:border-cyan-500"></textarea>
+                <div class="flex justify-end">
+                    <button @click="parseConfluenceText()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono rounded-lg transition">Parse & Import Log</button>
+                </div>
+            </div>
+        </div>
 
+        <!-- TAB 4: PROJECTS & CODES -->
+        <div x-show="currentTab === 'projects'" class="space-y-6 no-print">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+                <div>
+                    <h3 class="text-base font-bold text-slate-100">Project & Billing Codes</h3>
+                </div>
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg space-y-3">
-                    <h4 class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">Add New Project Code</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-                        <input type="text" x-model="newProj.code" placeholder="Code (e.g. AWS)" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
-                        <input type="text" x-model="newProj.name" placeholder="Project Name" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
-                        <input type="text" x-model="newProj.description" placeholder="Description" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <input type="text" x-model="newProj.code" placeholder="Code" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200">
+                        <input type="text" x-model="newProj.name" placeholder="Project Name" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200">
+                        <input type="text" x-model="newProj.description" placeholder="Description" class="bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200">
                     </div>
                     <div class="flex justify-end pt-1">
                         <button @click="addProject()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded-lg transition">Save Project</button>
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <template x-for="proj in projects" :key="proj.code">
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg flex items-center justify-between">
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg flex justify-between">
                             <div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold" :class="getBadgeClass(proj.code)" x-text="proj.code"></span>
-                                    <h4 class="text-sm font-semibold text-slate-200" x-text="proj.name"></h4>
-                                </div>
-                                <p class="text-xs text-slate-400 mt-1" x-text="proj.description"></p>
+                                <span class="px-2 py-0.5 rounded text-xs font-mono font-bold" :class="getBadgeClass(proj.code)" x-text="proj.code"></span>
+                                <h4 class="text-sm font-semibold text-slate-200 mt-1" x-text="proj.name"></h4>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
-
     </main>
 
     <!-- Manual Entry Modal -->
@@ -245,25 +279,24 @@
                 <h3 class="text-base font-bold text-slate-100 font-mono">Add Time Entry</h3>
                 <button @click="showModal = false" class="text-slate-400 hover:text-slate-200">&times;</button>
             </div>
-
             <div class="space-y-4 font-mono text-xs">
                 <div>
                     <label class="block text-slate-400 mb-1">Date (YYYYMMDD)</label>
-                    <input type="text" x-model="modalForm.date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <input type="text" x-model="modalForm.date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-400 mb-1">Start Time (HH:MM)</label>
-                        <input type="text" x-model="modalForm.start" placeholder="08:00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <input type="text" x-model="modalForm.start" placeholder="08:00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1">End Time (HH:MM)</label>
-                        <input type="text" x-model="modalForm.end" placeholder="09:30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <input type="text" x-model="modalForm.end" placeholder="09:30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
                     </div>
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">Project Code</label>
-                    <select x-model="modalForm.projectCode" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <select x-model="modalForm.projectCode" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
                         <template x-for="proj in projects" :key="proj.code">
                             <option :value="proj.code" x-text="proj.code + ' - ' + proj.name"></option>
                         </template>
@@ -271,14 +304,9 @@
                 </div>
                 <div>
                     <label class="block text-slate-400 mb-1">Task Description</label>
-                    <input type="text" x-model="modalForm.task" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Notes (Optional)</label>
-                    <textarea x-model="modalForm.notes" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-cyan-500 resize-y"></textarea>
+                    <input type="text" x-model="modalForm.task" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
                 </div>
             </div>
-
             <div class="flex justify-end space-x-3 pt-2">
                 <button @click="showModal = false" class="px-4 py-2 rounded-lg text-xs font-mono text-slate-400 hover:bg-slate-800 transition">Cancel</button>
                 <button @click="saveManualEntry()" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs font-mono rounded-lg transition">Save Entry</button>
@@ -291,32 +319,27 @@
         function timeTrackerApp() {
             return {
                 darkMode: true,
-                currentTab: 'sprints',
+                currentTab: 'reports',
                 currentSprintTitle: '',
-                showModal: false,
                 timerRunning: false,
                 timerSeconds: 0,
                 timerInterval: null,
-                timerStartTime: null, // Add this new variable
-
+                timerStartTime: null,
                 dbConnected: false,
                 fileHandle: null,
-
                 activeTaskDescription: '',
                 activeProjectCode: 'DAR-T',
                 activeTaskNotes: '',
                 taskNotes: {},
-
-                rawConfluenceText: '',
-
                 projects: [
-                    { code: 'Per', name: 'Personal', description: 'Personal routines, Wasted Days blog, study' },
-                    { code: 'SMG', name: 'SMG Consulting', description: 'Client consulting operations' },
-                    { code: 'DAR-T', name: 'DAR - Technical', description: 'LiDAR QA, geospatial processing, Python scripting' },
-                    { code: 'DAR-A', name: 'DAR - Administrative', description: 'Client communication, scoping, Friday meetings' }
+                    { code: 'Per', name: 'Personal', description: 'Personal routines, blogging' },
+                    { code: 'SMG', name: 'SMG Consulting', description: 'Client operations' },
+                    { code: 'DAR-T', name: 'DAR - Technical', description: 'LiDAR QA, scripting' },
+                    { code: 'DAR-A', name: 'DAR - Administrative', description: 'Client communication' }
                 ],
-
                 entries: [],
+                selectedReportMonth: '',
+                showModal: false,
                 newProj: { code: '', name: '', description: '' },
                 modalForm: { date: '', start: '09:00', end: '10:00', projectCode: 'DAR-T', task: '', notes: '' },
 
@@ -335,6 +358,12 @@
                     const todayStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
                     this.currentSprintTitle = todayStr;
 
+                    let reportDate = new Date();
+                    if (reportDate.getDate() === 1) {
+                        reportDate.setMonth(reportDate.getMonth() - 1);
+                    }
+                    this.selectedReportMonth = `${reportDate.getFullYear()}${pad(reportDate.getMonth() + 1)}`;
+
                     this.$watch('activeTaskDescription', () => this.syncNotes());
                     this.$watch('activeProjectCode', () => this.syncNotes());
 
@@ -348,9 +377,67 @@
                             clearTimeout(noteTimeout);
                             noteTimeout = setTimeout(() => {
                                 this.writeToFileSystem();
-                            }, 1000); // 1-second debounce to prevent write-locking the file
+                            }, 1000);
                         }
                     });
+                },
+
+                get availableMonths() {
+                    const months = new Set(this.entries.map(e => e.date.substring(0, 6)));
+                    return Array.from(months).sort().reverse().map(m => {
+                        const year = m.substring(0, 4);
+                        const month = parseInt(m.substring(4, 6)) - 1;
+                        const date = new Date(year, month);
+                        return {
+                            value: m,
+                            label: date.toLocaleString('default', { month: 'long', year: 'numeric' })
+                        };
+                    });
+                },
+
+                formatMonthLabel(monthStr) {
+                    if (!monthStr || monthStr.length < 6) return '';
+                    const year = monthStr.substring(0, 4);
+                    const month = parseInt(monthStr.substring(4, 6)) - 1;
+                    return new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+                },
+
+                getProjectName(code) {
+                    const proj = this.projects.find(p => p.code === code);
+                    return proj ? proj.name : 'Unknown Project';
+                },
+
+                generateMonthlyReport() {
+                    if (!this.selectedReportMonth) return [];
+                    const filtered = this.entries.filter(e => e.date.startsWith(this.selectedReportMonth));
+                    const grouped = {};
+
+                    filtered.forEach(e => {
+                        if (!grouped[e.projectCode]) {
+                            grouped[e.projectCode] = {
+                                code: e.projectCode,
+                                name: this.getProjectName(e.projectCode),
+                                totalMins: 0,
+                                tasks: new Set()
+                            };
+                        }
+
+                        if (e.start && e.end) {
+                            const [sh, sm] = e.start.split(':').map(Number);
+                            const [eh, em] = e.end.split(':').map(Number);
+                            let diff = (eh * 60 + em) - (sh * 60 + sm);
+                            if (diff < 0) diff += 24 * 60;
+                            grouped[e.projectCode].totalMins += diff;
+                        }
+
+                        if (e.task) grouped[e.projectCode].tasks.add(e.task.trim());
+                    });
+
+                    return Object.values(grouped).map(g => ({
+                        ...g,
+                        totalHours: (g.totalMins / 60).toFixed(2),
+                        tasks: Array.from(g.tasks)
+                    })).sort((a, b) => b.totalMins - a.totalMins);
                 },
 
                 async connectLocalDatabase() {
@@ -364,11 +451,9 @@
                         });
                         this.fileHandle = handle;
                         this.dbConnected = true;
-
-                        // Immediately write the current cached state to establish the file
                         await this.writeToFileSystem();
                     } catch (err) {
-                        console.warn("User cancelled database connection or browser blocked it.");
+                        console.warn("User cancelled database connection.");
                     }
                 },
 
@@ -387,7 +472,7 @@
                         console.error("Write failed:", err);
                         this.dbConnected = false;
                         this.fileHandle = null;
-                        alert("Database connection lost. Please click 'Connect DB' to re-mount the file.");
+                        alert("Database connection lost. Please click 'Connect DB'.");
                     }
                 },
 
@@ -410,7 +495,6 @@
                     this.writeToFileSystem();
                 },
 
-                // ... (rest of the methods remain identical: toggleTheme, sortedDates, etc.)
                 toggleTheme() {
                     this.darkMode = !this.darkMode;
                     document.documentElement.classList.toggle('dark', this.darkMode);
@@ -444,8 +528,6 @@
                     if (!this.timerRunning) {
                         this.timerRunning = true;
                         this.timerStartTime = Date.now();
-
-                        // Calculate the exact elapsed time every second, bypassing browser throttling
                         this.timerInterval = setInterval(() => {
                             this.timerSeconds = Math.floor((Date.now() - this.timerStartTime) / 1000);
                         }, 1000);
@@ -454,8 +536,7 @@
                         this.timerRunning = false;
 
                         const endTime = new Date();
-                        const startTime = new Date(this.timerStartTime); // Use the exact recorded start time
-
+                        const startTime = new Date(this.timerStartTime);
                         const pad = n => String(n).padStart(2, '0');
                         const dateStr = `${endTime.getFullYear()}${pad(endTime.getMonth() + 1)}${pad(endTime.getDate())}`;
                         const startStr = `${pad(startTime.getHours())}:${pad(startTime.getMinutes())}`;
@@ -549,41 +630,42 @@
 
                 parseConfluenceText() {
                     if (!this.rawConfluenceText.trim()) return;
+
                     const lines = this.rawConfluenceText.split('\n');
-                    const now = new Date();
-                    const pad = n => String(n).padStart(2, '0');
-                    let currentDate = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+                    let currentDate = '';
 
                     lines.forEach(line => {
                         const trimmed = line.trim();
+                        if (!trimmed) return;
+
+                        // 1. Catch the Date headers (e.g., 20260904)
                         if (/^2026\d{4}$/.test(trimmed)) {
                             currentDate = trimmed;
                             return;
                         }
-                        const timeMatch = trimmed.match(/^(\d{2}:\d{2})\s+(\d{2}:\d{2})/);
-                        if (timeMatch) {
-                            const start = timeMatch[1];
-                            const end = timeMatch[2];
-                            const remainder = trimmed.replace(timeMatch[0], '').trim();
 
-                            let code = 'DAR-T';
-                            if (remainder.startsWith('Per')) code = 'Per';
-                            else if (remainder.startsWith('SMG')) code = 'SMG';
-                            else if (remainder.startsWith('DAR-A')) code = 'DAR-A';
-                            else if (remainder.startsWith('DAR')) code = 'DAR-T';
+                        // 2. Parse the Tab-Separated columns
+                        const cols = trimmed.split('\t');
 
-                            const taskText = remainder.replace(/^(Per|SMG|DAR-T|DAR-A|DAR)\b/, '').trim() || remainder;
-                            this.entries.push({
+                        // Skip header rows and ensure we have enough columns for a valid entry
+                        if (cols.length >= 3 && !cols[0].includes('Type')) {
+                            let code = cols[0].trim();
+
+                            // Map legacy 'DAR' entries strictly to your new Technical code
+                            if (code === 'DAR') code = 'DAR-T';
+
+                            this.entries.unshift({
                                 id: Date.now() + Math.random(),
                                 date: currentDate,
-                                start: start,
-                                end: end,
                                 projectCode: code,
-                                task: taskText,
+                                task: cols[1] ? cols[1].trim() : 'Migrated Task',
+                                start: cols[2] ? cols[2].trim() : '',
+                                end: cols[3] ? cols[3].trim() : '',
                                 notes: ''
                             });
                         }
                     });
+
                     this.saveToStorage();
                     this.currentTab = 'sprints';
                     this.rawConfluenceText = '';
